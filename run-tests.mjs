@@ -5,7 +5,7 @@ import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 const out = '/tmp/vitest-report.json';
 const r = spawnSync('npx', ['vitest', 'run', '--reporter=json', `--outputFile=${out}`], {
   encoding: 'utf8',
-  timeout: 5 * 60 * 1000
+  timeout: 3 * 60 * 1000
 });
 
 const strip = (s) => (s || '').replace(/\u001b\[[0-9;]*m/g, '');
@@ -36,8 +36,11 @@ try {
 } catch (err) {
   failed = 1;
   total = 1;
+  const hung = r.signal || r.status === null;
   failures.push(
-    `test harness error: ${err.message}\nstdout: ${strip(r.stdout).slice(0, 400)}\nstderr: ${strip(r.stderr).slice(0, 400)}`
+    hung
+      ? `test suite hung and was killed after timeout (signal ${r.signal}) — likely an infinite loop in the last change\nstdout: ${strip(r.stdout).slice(0, 400)}`
+      : `test harness error: ${err.message}\nstdout: ${strip(r.stdout).slice(0, 400)}\nstderr: ${strip(r.stderr).slice(0, 400)}`
   );
 }
 
