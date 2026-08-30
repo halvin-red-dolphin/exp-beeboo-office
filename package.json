@@ -6,7 +6,8 @@
   "scripts": {
     "test": "vitest run",
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "bridge": "node bridge/server.js"
   },
   "dependencies": {
     "pixi.js": "^8.6.0",

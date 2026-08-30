@@ -8,7 +8,8 @@ import { createGrid, addWall, isWalkable } from './grid.js';
 import { findPath } from './astar.js';
 import { createWorker, assignPath, tick } from './worker.js';
 import { applyEvent } from './events.js';
-import { createMockStream } from './mockStream.js';
+import { createLiveStream } from './liveStream.js';
+import { mapWorker } from './translate.js';
 import { gridToScreen } from './iso.js';
 import { lerpPos } from './interpolate.js';
 import { buildSceneModel, stateColor } from './scene.js';
@@ -19,7 +20,18 @@ const ROWS = 8;
 const TILE_W = 64;
 const TILE_H = 32;
 const SIM_HZ = 8;
-const EVENT_EVERY_MS = 1800;
+const BRIDGE_URL = import.meta.env?.VITE_BRIDGE_URL || 'http://localhost:9901/stream';
+// gateway agent id -> office worker (unknown agents become the visitor)
+const ROSTER = {
+  main: 'halvin',
+  halvin: 'halvin',
+  bilby: 'bilby',
+  nagatha: 'nagatha',
+  echo: 'echo',
+  julie: 'julie',
+  clarance: 'clarance',
+  visitor: 'visitor'
+};
 const WALLS = [[3, 2], [3, 3], [3, 4], [7, 1], [7, 2], [8, 5], [9, 5], [5, 6]];
 const DESKS = {
   bilby: { x: 1, y: 1 },
@@ -27,7 +39,8 @@ const DESKS = {
   halvin: { x: 10, y: 1 },
   echo: { x: 1, y: 6 },
   julie: { x: 6, y: 4 },
-  clarance: { x: 10, y: 7 }
+  clarance: { x: 10, y: 7 },
+  visitor: { x: 8, y: 0 }
 };
 const COFFEE = { x: 11, y: 4 };
 const CHAT = { x: 4, y: 7 };
@@ -46,6 +59,7 @@ export default function App() {
   const workersRef = useRef(new Map());
   const eventLogRef = useRef([]);
   const [selected, setSelected] = useState(null);
+  const [streamStatus, setStreamStatus] = useState('connecting');
   const [, setPulse] = useState(0);
 
   // low-frequency panel refresh
@@ -57,6 +71,7 @@ export default function App() {
   useEffect(() => {
     let app = null;
     let destroyed = false;
+    let cleanupStream = null;
 
     (async () => {
       // Pixi v8: bare constructor, options go to async init()
@@ -117,12 +132,11 @@ export default function App() {
         layer.addChild(dot);
       }
 
-      // event-driven behaviour
-      const stream = createMockStream(WORKER_IDS);
+      // event-driven behaviour: live SSE from the bridge, demo mode as fallback
       const pending = new Map();
-      let sinceEvent = 0;
-      const dispatch = () => {
-        const evt = stream.next();
+      const handleEvent = (raw) => {
+        if (!raw || !raw.type) return;
+        const evt = { ...raw, agent: mapWorker(raw.agent, ROSTER) };
         eventLogRef.current = [...eventLogRef.current.slice(-199), evt];
         const w = workersRef.current.get(evt.agent);
         if (!w) return;
@@ -137,6 +151,9 @@ export default function App() {
         }
         applyEvent(workersRef.current, evt); // already there (or idle): apply now
       };
+      const stream = createLiveStream(BRIDGE_URL, handleEvent, setStreamStatus);
+      stream.start(WORKER_IDS);
+      cleanupStream = () => stream.close();
 
       // fixed-step simulation + interpolated rendering
       const prev = new Map(workers.map((w) => [w.id, { x: w.x, y: w.y }]));
@@ -144,11 +161,6 @@ export default function App() {
       let acc = 0;
       app.ticker.add((ticker) => {
         acc += ticker.deltaMS;
-        sinceEvent += ticker.deltaMS;
-        if (sinceEvent >= EVENT_EVERY_MS) {
-          sinceEvent = 0;
-          dispatch();
-        }
         while (acc >= STEP) {
           acc -= STEP;
           for (const w of workers) {
@@ -179,6 +191,7 @@ export default function App() {
 
     return () => {
       destroyed = true;
+      if (cleanupStream) cleanupStream();
       if (app) app.destroy(true, { children: true });
     };
   }, []);
@@ -193,7 +206,12 @@ export default function App() {
   return (
     <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
       <div>
-        <h1>BeeBoo Office — slice 3 (EXP-001)</h1>
+        <h1>
+          BeeBoo Office
+          <span style={{ fontSize: 12, marginLeft: 12, padding: '2px 8px', borderRadius: 10, background: streamStatus === 'live' ? '#1b5e20' : '#5d4a12', color: '#fff' }}>
+            {streamStatus === 'live' ? '🟢 live' : '🟡 demo'}
+          </span>
+        </h1>
         <div ref={hostRef} />
         <p style={{ fontSize: 12, opacity: 0.7 }}>
           {STATES.map((s) => (
