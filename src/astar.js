@@ -28,7 +28,7 @@ export function findPath(grid, start, goal) {
         currentKey = key;
       }
     }
-    
+
     if (currentKey === goalKey) {
       const path = [];
       let current = currentKey;
@@ -44,22 +44,22 @@ export function findPath(grid, start, goal) {
     
     const [x, y] = currentKey.split(',').map(Number);
     const current = { x, y };
-    
+
     for (const neighbor of neighbors(grid, current)) {
       const neighborKey = `${neighbor.x},${neighbor.y}`;
-      
+
       if (gScore.has(neighborKey) && gScore.get(neighborKey) <= gScore.get(currentKey) + 1) {
         continue;
       }
-      
+
       cameFrom.set(neighborKey, currentKey);
       gScore.set(neighborKey, gScore.get(currentKey) + 1);
       fScore.set(neighborKey, gScore.get(neighborKey) + manhattanDistance(neighbor, goal));
-      
+
       openSet.add(neighborKey);
     }
   }
-  
+
   return [];
 }
 
