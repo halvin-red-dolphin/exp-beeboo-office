@@ -4,28 +4,51 @@
 // deferred and begins when the worker arrives.
 
 export function createWorker(id, x, y) {
-  // TODO: return the initial worker object
-  return { id, x, y };
+  return { id, x, y, state: 'idle', path: [], task: null };
 }
 
 export function assignPath(worker, path) {
-  // TODO: store the path; switch to 'walk' when the path is non-empty
+  worker.path = path;
+  if (path.length > 0) {
+    worker.state = 'walk';
+  }
 }
 
 export function tick(worker) {
-  // TODO: advance one cell while walking; on arrival switch to the pending
-  // task ('work') if one is set, otherwise back to 'idle'
+  if (worker.state === 'walk' && worker.path.length > 0) {
+    worker.x = worker.path[0].x;
+    worker.y = worker.path[0].y;
+    worker.path.shift();
+    if (worker.path.length === 0) {
+      if (worker.task) {
+        worker.state = 'work';
+      } else {
+        worker.state = 'idle';
+      }
+    }
+  } else if (worker.state === 'work' && worker.task) {
+    worker.task = null;
+    worker.state = 'idle';
+  }
 }
 
 export function startTask(worker, task) {
-  // TODO: store the task; begin 'work' now unless the worker is walking
+  worker.task = task;
+  if (worker.state !== 'walk') {
+    worker.state = 'work';
+  }
 }
 
 export function finishTask(worker) {
-  // TODO: clear the task and return to 'idle'
+  worker.task = null;
+  worker.state = 'idle';
 }
 
 export function setState(worker, state) {
-  // TODO: set only known states; return true when applied, false otherwise
-  return false;
+  const validStates = ['idle', 'walk', 'work', 'chat', 'coffee'];
+  if (!validStates.includes(state)) {
+    return false;
+  }
+  worker.state = state;
+  return true;
 }

@@ -3,18 +3,56 @@
 import { setState } from './worker.js';
 
 export function createBus() {
-  // TODO: minimal pub/sub: on(type, handler), emit(type, payload)
-  return {};
+  const handlers = new Map();
+  
+  return {
+    on(type, handler) {
+      if (!handlers.has(type)) {
+        handlers.set(type, []);
+      }
+      handlers.get(type).push(handler);
+    },
+    
+    emit(type, payload) {
+      if (handlers.has(type)) {
+        for (const handler of handlers.get(type)) {
+          handler(payload);
+        }
+      }
+    }
+  };
 }
 
 export function mapAgentEvent(event) {
-  // TODO: task_started->work, task_completed->idle, message_sent->chat,
-  // break_started->coffee; anything else (or missing agent) -> null
-  return null;
+  if (!event || !event.type || !event.agent) {
+    return null;
+  }
+  
+  const mapping = {
+    'task_started': 'work',
+    'task_completed': 'idle',
+    'message_sent': 'chat',
+    'break_started': 'coffee'
+  };
+  
+  const action = mapping[event.type];
+  if (!action) {
+    return null;
+  }
+  
+  return { workerId: event.agent, action };
 }
 
 export function applyEvent(workers, event) {
-  // TODO: map the event and update the matching worker's state via setState;
-  // return true when a worker was updated, false otherwise
-  return false;
+  const mapping = mapAgentEvent(event);
+  if (!mapping) {
+    return false;
+  }
+  
+  const worker = workers.get(mapping.workerId);
+  if (!worker) {
+    return false;
+  }
+  
+  return setState(worker, mapping.action);
 }
