@@ -1,6 +1,6 @@
 // src/events.js — event bus + agent-event mapping (EXP-001 slice 1)
 // Maps real BeeBoo agent events onto worker behaviour in the office.
-import { setState } from './worker.js';
+import { setState, startTask, finishTask } from './worker.js';
 
 export function createBus() {
   const handlers = new Map();
@@ -54,5 +54,11 @@ export function applyEvent(workers, event) {
     return false;
   }
   
+  if (mapping.action === 'work') {
+    startTask(worker, event.task);
+  } else if (mapping.action === 'idle') {
+    finishTask(worker);
+  }
+
   return setState(worker, mapping.action);
 }
