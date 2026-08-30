@@ -7,15 +7,23 @@ export function createGrid(width, height) {
 }
 
 export function addWall(grid, x, y) {
-  // TODO: mark the cell as a wall
+  grid.walls.add(`${x},${y}`);
 }
 
 export function isWalkable(grid, x, y) {
-  // TODO: bounds check + wall check
-  return true;
+  if (x < 0 || y < 0 || x >= grid.width || y >= grid.height) return false;
+  return !grid.walls.has(`${x},${y}`);
 }
 
 export function neighbors(grid, x, y) {
-  // TODO: return the 4-directionally adjacent walkable cells as [{ x, y }]
-  return [];
+  const result = [];
+  const directions = [{ x: 0, y: -1 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 0 }];
+  for (const dir of directions) {
+    const nx = x + dir.x;
+    const ny = y + dir.y;
+    if (isWalkable(grid, nx, ny)) {
+      result.push({ x: nx, y: ny });
+    }
+  }
+  return result;
 }
