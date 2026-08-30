@@ -35,6 +35,9 @@ export function findPath(grid, start, goal) {
     if (currentKey === goalKey) {
       const path = [];
       let current = currentKey;
+      if (!current) {
+        return [];
+      }
       while (current) {
         const [x, y] = current.split(',').map(Number);
         path.unshift({ x, y });
