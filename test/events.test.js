@@ -40,6 +40,16 @@ describe('agent event mapping', () => {
     expect(mapAgentEvent(null)).toBe(null);
   });
 
+  it('applyEvent stores the task on task_started and clears it on task_completed', () => {
+    const workers = new Map([['bilby', createWorker('bilby', 0, 0)]]);
+    applyEvent(workers, { type: 'task_started', agent: 'bilby', task: 'task-7' });
+    expect(workers.get('bilby').task).toBe('task-7');
+    expect(workers.get('bilby').state).toBe('work');
+    applyEvent(workers, { type: 'task_completed', agent: 'bilby' });
+    expect(workers.get('bilby').task).toBe(null);
+    expect(workers.get('bilby').state).toBe('idle');
+  });
+
   it('applyEvent updates the matching worker and reports success', () => {
     const workers = new Map([['bilby', createWorker('bilby', 0, 0)]]);
     expect(applyEvent(workers, { type: 'message_sent', agent: 'bilby' })).toBe(true);
