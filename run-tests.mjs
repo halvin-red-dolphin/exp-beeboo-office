@@ -44,6 +44,18 @@ try {
   );
 }
 
+// Slice 2+: the production build is part of the contract (metrics.build_ok).
+let buildOk = true;
+if (process.env.BUILD_CHECK !== '0') {
+  const b = spawnSync('npx', ['vite', 'build'], { encoding: 'utf8', timeout: 3 * 60 * 1000 });
+  buildOk = b.status === 0;
+  if (!buildOk) {
+    failed += 1;
+    total += 1;
+    failures.push(`build :: vite build failed\n${strip((b.stderr || '') + (b.stdout || '')).slice(0, 900)}`);
+  }
+}
+
 const resultsDir = process.env.RESULTS_DIR || '/results';
 mkdirSync(resultsDir, { recursive: true });
 writeFileSync(
@@ -54,7 +66,8 @@ writeFileSync(
       experiment: 'exp-beeboo-office',
       iteration: parseInt(process.env.ITERATION || '0', 10),
       timestamp: new Date().toISOString(),
-      tests: { passed, failed, total, failures }
+      tests: { passed, failed, total, failures },
+      metrics: { build_ok: buildOk }
     },
     null,
     2
