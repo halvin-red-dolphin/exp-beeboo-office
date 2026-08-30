@@ -4,18 +4,45 @@
 // Must NEVER throw, whatever junk arrives.
 
 export function agentFromSessionKey(sessionKey) {
-  // TODO: 'agent:<id>:...' -> '<id>', anything else -> null
-  return null;
+  if (!sessionKey || typeof sessionKey !== 'string' || !sessionKey.startsWith('agent:')) {
+    return null;
+  }
+  const parts = sessionKey.split(':');
+  if (parts.length < 3) {
+    return null;
+  }
+  return parts[1];
 }
 
 export function mapWorker(agentId, roster) {
-  // TODO: roster is { agentId: workerId }; unknown/missing -> 'visitor'
-  return 'visitor';
+  if (!agentId || !roster || typeof roster !== 'object') {
+    return 'visitor';
+  }
+  return roster[agentId] || 'visitor';
 }
 
 export function translate(record) {
-  // TODO: message:received -> task_started (task 'reply:<channelId>'),
-  // message:sent -> task_completed, command:* -> message_sent,
-  // everything else (or no agent in sessionKey) -> null
+  if (!record || typeof record !== 'object') {
+    return null;
+  }
+
+  const agentId = agentFromSessionKey(record.sessionKey);
+  if (!agentId) {
+    return null;
+  }
+
+  if (record.type === 'message' && record.action === 'received') {
+    const channelId = record.context?.channelId || 'telegram';
+    return { type: 'task_started', agent: agentId, task: `reply:${channelId}` };
+  }
+
+  if (record.type === 'message' && record.action === 'sent') {
+    return { type: 'task_completed', agent: agentId };
+  }
+
+  if (record.type === 'command') {
+    return { type: 'message_sent', agent: agentId };
+  }
+
   return null;
 }
