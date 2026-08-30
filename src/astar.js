@@ -3,11 +3,7 @@
 // inclusive of both endpoints, or [] when no path exists.
 import { neighbors, isWalkable } from './grid.js';
 
-function manhattanDistance(a, b) {
-  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-}
-
-function findPath(grid, start, goal) {
+export function findPath(grid, start, goal) {
   if (start.x === goal.x && start.y === goal.y) {
     return [start];
   }
@@ -58,3 +54,6 @@ function findPath(grid, start, goal) {
   return [];
 }
 
+function manhattanDistance(a, b) {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+}
