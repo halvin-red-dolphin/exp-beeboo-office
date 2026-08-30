@@ -4,36 +4,37 @@
 // break_started; every task_started mints a new task name "task-N".
 
 export function createMockStream(agentIds) {
-  let agentIndex = 0;
-  let taskNumber = 1;
   const eventTypes = ['task_started', 'task_completed', 'message_sent', 'break_started'];
-  let eventTypeIndex = 0;
+  let typeIndex = 0;
+  let taskNumber = 0;
+  const queue = [];
+
+  function refillQueue() {
+    const type = eventTypes[typeIndex];
+    queue.length = 0;
+    for (const agent of agentIds) {
+      if (type === 'task_started') {
+        queue.push({
+          type: 'task_started',
+          agent: agent,
+          task: `task-${++taskNumber}`
+        });
+      } else {
+        queue.push({
+          type: type,
+          agent: agent
+        });
+      }
+    }
+    typeIndex = (typeIndex + 1) % eventTypes.length;
+  }
 
   return {
     next() {
-      const agent = agentIds[agentIndex];
-      let event;
-
-      if (eventTypes[eventTypeIndex] === 'task_started') {
-        event = {
-          type: 'task_started',
-          agent: agent,
-          task: `task-${taskNumber++}`
-        };
-      } else {
-        event = {
-          type: eventTypes[eventTypeIndex],
-          agent: agent
-        };
+      if (queue.length === 0) {
+        refillQueue();
       }
-
-      // Move to next agent (round-robin)
-      agentIndex = (agentIndex + 1) % agentIds.length;
-
-      // Move to next event type
-      eventTypeIndex = (eventTypeIndex + 1) % eventTypes.length;
-
-      return event;
+      return queue.shift();
     }
   };
 }
