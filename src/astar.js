@@ -48,6 +48,10 @@ export function findPath(grid, start, goal) {
     const [x, y] = currentKey.split(',').map(Number);
     const currentNeighbors = neighbors(grid, { x, y });
     
+    if (!currentNeighbors) {
+      continue;
+    }
+
     for (const neighbor of currentNeighbors) {
       const neighborKey = `${neighbor.x},${neighbor.y}`;
       
