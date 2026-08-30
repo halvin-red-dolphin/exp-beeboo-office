@@ -8,7 +8,7 @@ export function gridToScreen(gx, gy, tileW, tileH) {
 }
 
 export function screenToGrid(sx, sy, tileW, tileH) {
-  const x = (sx / tileW + sy / tileH) / 2;
-  const y = (sy / tileH - sx / tileW) / 2;
-  return { x, y };
+  const a = sx / (tileW / 2);
+  const b = sy / (tileH / 2);
+  return { x: (a + b) / 2, y: (b - a) / 2 };
 }
