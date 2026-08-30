@@ -1,17 +1,17 @@
 import { neighbors } from './grid.js';
 
 export function findPath(grid, start, goal) {
-  if (start.x === goal.x && start.y === goal.y) {
-    return [start];
-  }
+  const startKey = `${start.x},${start.y}`;
+  const goalKey = `${goal.x},${goal.y}`;
   
   const openSet = new Set();
   const cameFrom = new Map();
   const gScore = new Map();
   const fScore = new Map();
   
-  const startKey = `${start.x},${start.y}`;
-  const goalKey = `${goal.x},${goal.y}`;
+  if (start.x === goal.x && start.y === goal.y) {
+    return [start];
+  }
   
   openSet.add(startKey);
   gScore.set(startKey, 0);
