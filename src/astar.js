@@ -51,19 +51,21 @@ export function findPath(grid, start, goal) {
     for (const neighbor of currentNeighbors) {
       const neighborKey = `${neighbor.x},${neighbor.y}`;
       
-      if (openSet.has(neighborKey)) {
-        const tentativeGScore = gScore.get(currentKey) + 1;
-        if (tentativeGScore < gScore.get(neighborKey)) {
-          cameFrom.set(neighborKey, currentKey);
+      if (isWalkable(grid, neighbor.x, neighbor.y)) {
+        if (openSet.has(neighborKey)) {
+          const tentativeGScore = gScore.get(currentKey) + 1;
+          if (tentativeGScore < gScore.get(neighborKey)) {
+            cameFrom.set(neighborKey, currentKey);
+            gScore.set(neighborKey, tentativeGScore);
+            fScore.set(neighborKey, tentativeGScore + manhattanDistance(neighbor, goal));
+          }
+        } else {
+          const tentativeGScore = gScore.get(currentKey) + 1;
           gScore.set(neighborKey, tentativeGScore);
           fScore.set(neighborKey, tentativeGScore + manhattanDistance(neighbor, goal));
+          openSet.add(neighborKey);
+          cameFrom.set(neighborKey, currentKey);
         }
-      } else {
-        const tentativeGScore = gScore.get(currentKey) + 1;
-        gScore.set(neighborKey, tentativeGScore);
-        fScore.set(neighborKey, tentativeGScore + manhattanDistance(neighbor, goal));
-        openSet.add(neighborKey);
-        cameFrom.set(neighborKey, currentKey);
       }
     }
   }
