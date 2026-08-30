@@ -1,7 +1,7 @@
 // src/astar.js — A* pathfinding over the office grid (EXP-001 slice 1)
 // findPath(grid, start, goal) -> array of { x, y } cells from start to goal
 // inclusive of both endpoints, or [] when no path exists.
-import { neighbors } from './grid.js';
+import { neighbors, isWalkable } from './grid.js';
 
 export function findPath(grid, start, goal) {
   if (start.x === goal.x && start.y === goal.y) {
