@@ -3,7 +3,7 @@
 // inclusive of both endpoints, or [] when no path exists.
 import { neighbors, isWalkable } from './grid.js';
 
-function findPath(grid, start, goal) {
+export function findPath(grid, start, goal) {
   if (!isWalkable(grid, start.x, start.y) || !isWalkable(grid, goal.x, goal.y)) {
     return [];
   }
