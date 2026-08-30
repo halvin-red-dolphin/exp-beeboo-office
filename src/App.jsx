@@ -134,12 +134,25 @@ export default function App() {
 
       // event-driven behaviour: live SSE from the bridge, demo mode as fallback
       const pending = new Map();
+      // Minimum visible work dwell: a task_completed that lands while the worker is
+      // still walking to their desk (or within MIN_WORK_MS of going green) is deferred,
+      // so short tasks never have their work state silently swallowed.
+      const MIN_WORK_MS = 2500;
+      const workShownAt = new Map();
       const handleEvent = (raw) => {
         if (!raw || !raw.type) return;
         const evt = { ...raw, agent: mapWorker(raw.agent, ROSTER) };
-        eventLogRef.current = [...eventLogRef.current.slice(-199), evt];
+        if (!raw._deferred) eventLogRef.current = [...eventLogRef.current.slice(-199), evt];
         const w = workersRef.current.get(evt.agent);
         if (!w) return;
+        if (evt.type === 'task_completed') {
+          const walkingToWork = pending.get(w.id)?.type === 'task_started';
+          const sinceShown = Date.now() - (workShownAt.get(w.id) || 0);
+          if ((walkingToWork || sinceShown < MIN_WORK_MS) && (raw._defers || 0) < 4) {
+            setTimeout(() => handleEvent({ ...raw, _deferred: true, _defers: (raw._defers || 0) + 1 }), MIN_WORK_MS);
+            return;
+          }
+        }
         const dest = destinationFor({ task_started: 'work', task_completed: 'idle', message_sent: 'chat', break_started: 'coffee' }[evt.type], evt.agent);
         if (dest && (dest.x !== w.x || dest.y !== w.y)) {
           const p = findPath(grid, { x: w.x, y: w.y }, dest);
@@ -150,6 +163,7 @@ export default function App() {
           }
         }
         applyEvent(workersRef.current, evt); // already there (or idle): apply now
+        if (evt.type === 'task_started') workShownAt.set(w.id, Date.now());
       };
       const stream = createLiveStream(BRIDGE_URL, handleEvent, setStreamStatus);
       stream.start(WORKER_IDS);
@@ -168,8 +182,10 @@ export default function App() {
             const wasWalking = w.state === 'walk';
             tick(w);
             if (wasWalking && w.state !== 'walk' && pending.has(w.id)) {
-              applyEvent(workersRef.current, pending.get(w.id));
+              const pe = pending.get(w.id);
+              applyEvent(workersRef.current, pe);
               pending.delete(w.id);
+              if (pe.type === 'task_started') workShownAt.set(w.id, Date.now());
             }
           }
         }
