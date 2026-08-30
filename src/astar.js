@@ -3,58 +3,47 @@
 // inclusive of both endpoints, or [] when no path exists.
 import { neighbors, isWalkable } from './grid.js';
 
-function manhattanDistance(a, b) {
-  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-}
-
 function findPath(grid, start, goal) {
+  if (!isWalkable(grid, start.x, start.y) || !isWalkable(grid, goal.x, goal.y)) {
+    return [];
+  }
+
   if (start.x === goal.x && start.y === goal.y) {
     return [start];
   }
 
-  const openSet = [{ ...start, g: 0, h: manhattanDistance(start, goal), f: manhattanDistance(start, goal) }];
-  const cameFrom = new Map();
-  const gScore = new Map();
-  const fScore = new Map();
+  const queue = [start];
+  const visited = new Set([`${start.x},${start.y}`]);
+  const parent = new Map();
 
-  gScore.set(`${start.x},${start.y}`, 0);
-  fScore.set(`${start.x},${start.y}`, manhattanDistance(start, goal));
+  while (queue.length > 0) {
+    const cell = queue.shift();
+    const neighborsList = neighbors(grid, cell.x, cell.y);
 
-  while (openSet.length > 0) {
-    openSet.sort((a, b) => a.f - b.f);
-    const current = openSet.shift();
-
-    if (current.x === goal.x && current.y === goal.y) {
-      const path = [];
-      let c = current;
-      while (c) {
-        path.unshift({ x: c.x, y: c.y });
-        c = cameFrom.get(`${c.x},${c.y}`);
-      }
-      return path;
-    }
-
-    const currentKey = `${current.x},${current.y}`;
-    const currentNeighbors = neighbors(grid, current.x, current.y);
-
-    for (const neighbor of currentNeighbors) {
-      const neighborKey = `${neighbor.x},${neighbor.y}`;
-      const tentativeGScore = gScore.get(currentKey) + 1;
-
-      if (tentativeGScore < (gScore.get(neighborKey) || Infinity)) {
-        cameFrom.set(neighborKey, current);
-        gScore.set(neighborKey, tentativeGScore);
-        const h = manhattanDistance(neighbor, goal);
-        const f = tentativeGScore + h;
-        fScore.set(neighborKey, f);
-
-        if (!openSet.some(n => n.x === neighbor.x && n.y === neighbor.y)) {
-          openSet.push({ ...neighbor, g: tentativeGScore, h, f });
+    for (const neighbor of neighborsList) {
+      const key = `${neighbor.x},${neighbor.y}`;
+      if (!visited.has(key)) {
+        visited.add(key);
+        queue.push(neighbor);
+        parent.set(key, cell);
+        if (neighbor.x === goal.x && neighbor.y === goal.y) {
+          break;
         }
       }
     }
   }
 
-  return [];
-}
+  if (!parent.has(`${goal.x},${goal.y}`)) {
+    return [];
+  }
 
+  const path = [];
+  let current = goal;
+  while (current) {
+    path.unshift(current);
+    const key = `${current.x},${current.y}`;
+    current = parent.get(key);
+  }
+
+  return path;
+}
