@@ -7,7 +7,7 @@ import { Application, Container, Graphics } from 'pixi.js';
 import { createGrid, addWall, isWalkable } from './grid.js';
 import { findPath } from './astar.js';
 import { createWorker, assignPath, tick } from './worker.js';
-import { applyEvent } from './events.js';
+import { applyEvent, isStaleEvent } from './events.js';
 import { createLiveStream } from './liveStream.js';
 import { mapWorker } from './translate.js';
 import { gridToScreen } from './iso.js';
@@ -143,6 +143,8 @@ export default function App() {
         if (!raw || !raw.type) return;
         const evt = { ...raw, agent: mapWorker(raw.agent, ROSTER) };
         if (!raw._deferred) eventLogRef.current = [...eventLogRef.current.slice(-199), evt];
+        // replayed history (bridge ring buffer) is log-only: no choreography
+        if (isStaleEvent(raw)) return;
         const w = workersRef.current.get(evt.agent);
         if (!w) return;
         if (evt.type === 'task_completed') {
