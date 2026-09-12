@@ -50,7 +50,8 @@ const server = http.createServer((req, res) => {
       Connection: 'keep-alive',
       ...cors
     });
-    for (const evt of ring.toArray()) res.write(`data: ${JSON.stringify(evt)}\n\n`);
+    // replayed history is explicitly flagged: the app logs it but never animates it
+    for (const evt of ring.toArray()) res.write(`data: ${JSON.stringify({ ...evt, replay: true })}\n\n`);
     clients.add(res);
     req.on('close', () => clients.delete(res));
     return;

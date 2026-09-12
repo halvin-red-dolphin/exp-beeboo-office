@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createBus, mapAgentEvent, applyEvent, isStaleEvent } from '../src/events.js';
+import { createBus, mapAgentEvent, applyEvent, shouldAnimate } from '../src/events.js';
 import { createWorker } from '../src/worker.js';
 
 describe('event bus', () => {
@@ -61,35 +61,29 @@ describe('agent event mapping', () => {
   });
 });
 
-describe('isStaleEvent (replay-flicker fix)', () => {
-  const NOW = Date.parse('2026-09-12T12:00:00.000Z');
-
-  it('flags events older than the threshold as stale', () => {
-    const evt = { type: 'task_started', agent: 'halvin', ts: '2026-09-12T11:59:00.000Z' };
-    expect(isStaleEvent(evt, NOW)).toBe(true);
+describe('shouldAnimate (replay-flicker fix v2 — bridge flags replayed frames)', () => {
+  it('animates normal live events', () => {
+    expect(shouldAnimate({ type: 'task_started', agent: 'halvin', ts: '2026-09-12T12:00:00.000Z' })).toBe(true);
   });
 
-  it('treats recent events as fresh', () => {
-    const evt = { type: 'task_started', agent: 'halvin', ts: '2026-09-12T11:59:55.000Z' };
-    expect(isStaleEvent(evt, NOW)).toBe(false);
+  it('does not animate bridge-replayed history', () => {
+    expect(shouldAnimate({ type: 'task_started', agent: 'halvin', replay: true })).toBe(false);
   });
 
-  it('treats events without ts as fresh (mock stream)', () => {
-    expect(isStaleEvent({ type: 'task_started', agent: 'halvin' }, NOW)).toBe(false);
+  it('animates events without a replay flag (mock stream)', () => {
+    expect(shouldAnimate({ type: 'task_started', agent: 'halvin' })).toBe(true);
   });
 
-  it('treats unparseable ts as fresh', () => {
-    expect(isStaleEvent({ type: 'x', agent: 'a', ts: 'not-a-date' }, NOW)).toBe(false);
+  it('ignores truthy-but-not-true replay values', () => {
+    expect(shouldAnimate({ type: 'x', agent: 'a', replay: 1 })).toBe(true);
   });
 
-  it('respects a custom maxAgeMs', () => {
-    const evt = { type: 'x', agent: 'a', ts: '2026-09-12T11:59:55.000Z' };
-    expect(isStaleEvent(evt, NOW, 1000)).toBe(true);
+  it('never animates junk', () => {
+    expect(shouldAnimate(null)).toBe(false);
+    expect(shouldAnimate(undefined)).toBe(false);
   });
 
-  it('never throws on junk', () => {
-    expect(isStaleEvent(null, NOW)).toBe(false);
-    expect(isStaleEvent(undefined, NOW)).toBe(false);
-    expect(isStaleEvent({}, NOW)).toBe(false);
+  it('animates an empty object (no replay flag)', () => {
+    expect(shouldAnimate({})).toBe(true);
   });
 });

@@ -23,20 +23,13 @@ export function createBus() {
   };
 }
 
-// Replay-flicker fix (EXP-002 follow-up): events replayed from the bridge's
-// ring buffer on (re)connect carry their original timestamps. Anything older
-// than maxAgeMs should be logged but must not drive choreography, otherwise
-// a page refresh animates the whole buffered burst (green desks flickering).
-// Events without a parseable ts are treated as fresh (mock stream, tests).
-export function isStaleEvent(event, now = Date.now(), maxAgeMs = 30000) {
-  if (!event || !event.ts) {
-    return false;
-  }
-  const t = Date.parse(event.ts);
-  if (Number.isNaN(t)) {
-    return false;
-  }
-  return now - t > maxAgeMs;
+// Replay-flicker fix (EXP-002 follow-up, v2): the bridge flags frames it
+// replays from its ring buffer on (re)connect with { replay: true }. Those are
+// history — log them, never animate them. Deterministic: no clock comparison,
+// immune to device clock skew (v1 compared browser clock to bridge ts and
+// silently ate ALL choreography when clocks disagreed by >30s).
+export function shouldAnimate(event) {
+  return !!event && event.replay !== true;
 }
 
 export function mapAgentEvent(event) {
