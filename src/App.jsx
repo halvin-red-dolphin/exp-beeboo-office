@@ -229,6 +229,9 @@ export default function App() {
           <span style={{ fontSize: 12, marginLeft: 12, padding: '2px 8px', borderRadius: 10, background: streamStatus === 'live' ? '#1b5e20' : '#5d4a12', color: '#fff' }}>
             {streamStatus === 'live' ? '🟢 live' : '🟡 demo'}
           </span>
+          <span style={{ fontSize: 10, marginLeft: 8, opacity: 0.45, fontWeight: 'normal' }}>
+            build {typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev'}
+          </span>
         </h1>
         <div ref={hostRef} />
         <p style={{ fontSize: 12, opacity: 0.7 }}>
